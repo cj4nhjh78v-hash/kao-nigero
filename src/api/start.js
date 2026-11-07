@@ -1,5 +1,5 @@
 // POST /api/start — プレイ開始を記録して整理券を返す
-import { db, json, noDb } from "../../lib/db.js";
+import { db, json, noDb } from "../db.js";
 
 export async function onRequestPost({ env }) {
   const d = await db(env);

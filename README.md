@@ -3,7 +3,8 @@
 池のカエルをドラッグして、追いかけてくる〇〇から逃げるスマホ向けブラウザゲーム。
 名前を登録して、みんなのランキングに載せられます。
 
-Cloudflare Pages（無料）で公開し、ランキングは Cloudflare D1（無料のデータベース）に保存します。
+Cloudflare Workers（無料）で公開し、ランキングは Cloudflare D1（無料のデータベース）に保存します。
+公開URL：https://kao-nigero.ftjvcd99yy.workers.dev/
 
 ## フォルダ構成
 
@@ -13,39 +14,24 @@ public/            公開されるファイル
   face.webp        〇〇の顔（背景透過）
   og.png           シェアしたときのカード画像 1200×630
   favicon.png / apple-touch-icon.png
-functions/api/     ランキングのサーバー処理（Cloudflare Pages Functions）
-  start.js         POST /api/start  … プレイ開始の整理券を発行
-  scores.js        GET  /api/scores … 上位50件
+src/index.js       Worker の入口（/api/* をランキング処理へ、それ以外は public/ を返す）
+src/api/start.js   POST /api/start  … プレイ開始の整理券を発行
+src/api/scores.js  GET  /api/scores … 上位50件
                    POST /api/scores … 名前とスコアを登録
-lib/db.js          データベースの準備（テーブルは初回アクセス時に自動で作られる）
+src/db.js          データベースの準備（テーブルは初回アクセス時に自動で作られる）
+wrangler.jsonc     Worker の設定（名前・公開フォルダ・データベースのつなぎ先）
 ```
 
-## 公開手順（はじめの1回だけ）
+## 公開のしくみ
 
-1. Cloudflare に無料アカウントを作る
-2. **D1 データベースを作る**
-   ダッシュボード → Storage & Databases → D1 → Create
-   名前は `kao-nigero`
-3. **Pages プロジェクトを作る**
-   Workers & Pages → Create → Pages → Import an existing Git repository → このリポジトリを選ぶ
-   - Project name：`kao-nigero`（これが `https://kao-nigero.pages.dev` になる）
-   - Framework preset：None
-   - Build command：空のまま
-   - Build output directory：`public`
-   → Save and Deploy
-4. **データベースをつなぐ**
-   作ったプロジェクト → Settings → Bindings → Add → D1 database
-   - Variable name：`DB`（大文字）
-   - D1 database：`kao-nigero`
-   → Save
-5. **もう一度デプロイする**（つないだ設定は次のデプロイから有効）
-   Deployments → 一番上の … → Retry deployment
-6. `https://kao-nigero.pages.dev` を開いて、遊んで登録できれば完成
+Cloudflare の Workers & Pages で、この GitHub リポジトリと Worker `kao-nigero` をつないである。
+main に push するたびに自動で公開し直される。
 
-プロジェクト名が `kao-nigero` にできず別のURLになったときは、`public/index.html` の
-`kao-nigero.pages.dev`（og タグ3か所と `SITE_URL`）を実際のURLに書き換える。
+データベースのつなぎ先は `wrangler.jsonc` の `d1_databases` に書く
+（ダッシュボードでつないでも、次のデプロイで設定ファイルの内容に戻るため）。
+`database_id` は D1 → `kao-nigero` の画面に出ている ID。
 
-以後は GitHub に push するたびに自動で公開し直されます。
+公開URLを変えたら、`public/index.html` の og タグ2か所と `SITE_URL` を書き換える。
 
 ## ランキングのしくみ
 
@@ -70,6 +56,6 @@ DELETE FROM scores;
 ## 手元で動かす
 
 ```
-npx wrangler@4 pages dev public --d1 DB=kaodb
-# → http://localhost:8788/
+npx wrangler@4 dev
+# → http://localhost:8787/
 ```

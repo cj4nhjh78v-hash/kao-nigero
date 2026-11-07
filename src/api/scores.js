@@ -1,6 +1,6 @@
 // GET  /api/scores — 上位50件
 // POST /api/scores — {run, pid, name, score, time, flies} を登録（1端末につき自己ベスト1件）
-import { db, json, noDb } from "../../lib/db.js";
+import { db, json, noDb } from "../db.js";
 
 const TOP = 50;
 
