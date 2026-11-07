@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>〇〇からにげろ</title>
-<meta name="description" content="池のカエルを指でドラッグして、追いかけてくる〇〇から逃げるスマホゲーム。ハエを食べてボーナス、ギリギリでかわして加点。名前を登録してみんなのランキングに挑戦しよう。">
+<meta name="description" content="池のカエルを指でドラッグして、追いかけてくる〇〇から逃げるスマホゲーム。ハエを食べてボーナス、ギリギリでかわして加点。名前を登録して世界ランキングに挑戦しよう。">
 <meta name="theme-color" content="#082f33">
 <link rel="icon" href="/favicon.png" type="image/png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -84,9 +84,17 @@ body{background:#03191b;touch-action:none;color:var(--paper);font-family:var(--b
 .link:focus-visible,.del:focus-visible{outline:2px solid var(--frog);outline-offset:2px}
 #over{gap:11px}
 #rank{gap:12px}
-.rhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
-.rhead .title{font-size:clamp(30px,9cqw,40px)}
-.src{font-size:12px;color:var(--muted)}
+.rhead{display:grid;justify-items:center;gap:6px}
+.eyebrow{font-family:var(--display);font-size:12px;letter-spacing:.14em;color:#ffd35a;
+  padding:3px 10px;border-top:1px solid rgba(255,211,90,.45);border-bottom:1px solid rgba(255,211,90,.45)}
+.rhead .title{font-size:clamp(32px,10cqw,46px);text-shadow:3px 3px 0 var(--alert),0 0 24px rgba(255,211,90,.35)}
+.src{font-size:12px;color:var(--muted);letter-spacing:.04em}
+.rank .crown{font-size:10px;font-weight:800;color:var(--ink);border-radius:4px;padding:1px 5px;margin-left:6px;vertical-align:2px;background:#ffd35a}
+.rank li:nth-child(2) .crown{background:#dfe9e6}
+.rank li:nth-child(3) .crown{background:#e8a066}
+.rank li:nth-child(1){background:rgba(255,211,90,.12);box-shadow:inset 0 0 0 1px rgba(255,211,90,.45)}
+.rank li:nth-child(1) .nm,.rank li:nth-child(1) .sc{color:#ffe7a3}
+.note .wr{color:#ffd35a;font-family:var(--display);font-size:15px;letter-spacing:.06em}
 .rank{list-style:none;margin:0;padding:0 2px 0 0;display:grid;gap:4px;text-align:left;
   max-height:min(56vh,440px);overflow-y:auto;-webkit-overflow-scrolling:touch;font-variant-numeric:tabular-nums}
 .rank li{display:grid;grid-template-columns:2.1em minmax(0,1fr) auto auto;align-items:center;gap:10px;
@@ -125,7 +133,7 @@ body{background:#03191b;touch-action:none;color:var(--paper);font-family:var(--b
   <div class="stats" id="menuBest"></div>
   <div class="row">
     <button class="btn" id="startBtn" type="button">にげる</button>
-    <button class="btn ghost" id="menuRankBtn" type="button">ランキング</button>
+    <button class="btn ghost" id="menuRankBtn" type="button">世界ランキング</button>
   </div>
 </div>
 
@@ -135,13 +143,13 @@ body{background:#03191b;touch-action:none;color:var(--paper);font-family:var(--b
   <div class="big" id="overScore">0</div>
   <div class="stats" id="overStats"></div>
   <form class="form" id="nameForm" autocomplete="off">
-    <input class="input" id="nameInput" type="text" maxlength="24" placeholder="名前（12文字まで）" enterkeyhint="done" aria-label="ランキングに載せる名前">
+    <input class="input" id="nameInput" type="text" maxlength="24" placeholder="名前（12文字まで）" enterkeyhint="done" aria-label="世界ランキングに載せる名前">
     <button class="btn sm" id="submitBtn" type="submit">登録</button>
   </form>
   <p class="note" id="submitNote"></p>
   <div class="row">
     <button class="btn" id="retryBtn" type="button">もう一回</button>
-    <button class="btn ghost" id="overRankBtn" type="button">ランキング</button>
+    <button class="btn ghost" id="overRankBtn" type="button">世界ランキング</button>
   </div>
   <div class="links">
     <a class="link" id="shareX" href="https://x.com/" target="_blank" rel="noopener">Xでポスト</a>
@@ -151,7 +159,8 @@ body{background:#03191b;touch-action:none;color:var(--paper);font-family:var(--b
 
 <div class="panel" id="rank" hidden>
   <div class="rhead">
-    <h2 class="title">ランキング</h2>
+    <span class="eyebrow">第1回 〇〇逃走世界大会 公式記録</span>
+    <h2 class="title">世界ランキング</h2>
     <span class="src" id="rankSrc"></span>
   </div>
   <ol class="rank" id="rankList"></ol>
@@ -319,7 +328,10 @@ function refreshOverRank(){
   if(rankStatus==='loading'){note.textContent='ランキングを読み込み中…';return}
   const mine=online?rows().find(r=>r.me):null;
   if(mine&&mine.score>=lastRun.score){note.innerHTML=`あなたの登録ベストは <b>${mine.score}点</b>。登録すると名前だけ変わります。`;return}
-  note.innerHTML=`登録すると${online?'みんなの':'この端末の'}ランキングで <b>${placeFor(lastRun.score)}位</b>`;
+  const pl=placeFor(lastRun.score);
+  note.innerHTML=online
+    ?(pl===1?'登録すると <span class="wr">世界新記録</span>（世界1位）':`登録すると <b>世界${pl}位</b>`)
+    :`登録するとこの端末のランキングで <b>${pl}位</b>`;
 }
 $('nameForm').addEventListener('submit',async e=>{
   e.preventDefault();
@@ -339,8 +351,8 @@ $('nameForm').addEventListener('submit',async e=>{
         if(Array.isArray(r.body.scores))rankRows=r.body.scores;
         submitted=true;btn.textContent='済';
         note.innerHTML=r.body.improved
-          ?`登録した！ みんなのランキングで <b>${r.body.place}位</b>`
-          :`名前を「${esc(name)}」に更新。ベスト <b>${r.body.best}点</b> はそのまま（${r.body.place}位）`;
+          ?(r.body.place===1?'<span class="wr">世界新記録！</span> 全人類の頂点に立った（世界1位）':`登録した！ <b>世界${r.body.place}位</b> に名をきざんだ`)
+          :`名前を「${esc(name)}」に更新。ベスト <b>${r.body.best}点</b> はそのまま（世界${r.body.place}位）`;
       }else if(r.body.error==='bad_run'||r.body.error==='bad_score'){
         submitted=true;btn.textContent='×';note.textContent='この記録は登録できませんでした。もう一回遊んでから登録してね。';
       }else fail('登録できませんでした。もう一度ためしてね。');
@@ -355,23 +367,24 @@ $('nameForm').addEventListener('submit',async e=>{
 });
 function renderRank(){
   const list=$('rankList'),note=$('rankNote');list.textContent='';
-  $('rankSrc').textContent=online?'みんなの記録':'この端末の記録';
+  $('rankSrc').textContent=online?(rankRows.length>=50?'全人類の逃走記録 · 上位50人':`全人類の逃走記録 · エントリー ${rankRows.length}人`):'この端末の記録（世界につながっていません）';
   const rs=rows().slice(0,50);
   if(!rs.length){
     const li=document.createElement('li');li.className='empty';li.style.display='block';li.style.background='none';
-    li.textContent=rankStatus==='loading'?'読み込み中…':'まだ記録がありません。最初の1位になろう。';
+    li.textContent=rankStatus==='loading'?'世界の記録を取り寄せ中…':'まだ誰も挑戦していません。初代世界王者になろう。';
     list.appendChild(li);
   }
   rs.forEach((r,i)=>{
     const li=document.createElement('li');if(r.me)li.className='me';
     const no=document.createElement('span');no.className='no';no.textContent=i+1;
     const nm=document.createElement('span');nm.className='nm';nm.textContent=r.name;
+    if(i<3){const c=document.createElement('span');c.className='crown';c.textContent=['世界王者','準王者','銅メダル'][i];nm.appendChild(c)}
     if(r.me){const y=document.createElement('span');y.className='you';y.textContent='あなた';nm.appendChild(y)}
     const sc=document.createElement('span');sc.className='sc';sc.textContent=r.score;
     const tm=document.createElement('span');tm.className='tm';tm.textContent=r.time.toFixed(1)+'秒';
     li.append(no,nm,sc,tm);list.appendChild(li);
   });
-  if(rankStatus==='offline'){note.hidden=false;note.textContent='みんなのランキングにつながらないので、この端末だけに保存しています。'}
+  if(rankStatus==='offline'){note.hidden=false;note.textContent='世界ランキングにつながらないので、この端末だけに保存しています。'}
   else note.hidden=true;
 }
 function openRank(from){
