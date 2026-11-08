@@ -192,9 +192,9 @@ function rollFace(f){
   if(state!=='play')return f;
   const r=Math.random(),px=clamp(f.x,W*0.25,W*0.75),py=clamp(f.y,H*0.2,H*0.8);
   if(superReady&&r<SUPER_RATE){
-    f.rare='super';superFx=2.6;flash=Math.max(flash,0.9);shake=Math.max(shake,0.6);
-    pops.push({x:W/2,y:H*0.36,txt:'激レア〇〇',t:2.8,c:'#ff6a45',big:2.2});
-    pops.push({x:W/2,y:H*0.36+U*0.11,txt:'降臨！！',t:2.8,c:'#ffd35a',big:1.6});
+    f.rare='super';superFx=2.2;
+    // 文字は上のスコアの下に小さめに出して、池の真ん中はふさがない
+    pops.push({x:W/2,y:H*0.13,txt:'激レア〇〇 降臨！！',t:2.0,c:'#ffd35a',big:1.35,stay:true,a:0.85});
     [784,988,1175,1568].forEach((hz,i)=>setTimeout(()=>beep(hz,i===3?.35:.12,'square',.07),i*120));
     try{navigator.vibrate&&navigator.vibrate([40,30,40,30,120])}catch(e){}
   }else if(rareReady&&r<SUPER_RATE+RARE_RATE){
@@ -522,7 +522,7 @@ function updateMenu(dt){
 }
 function updateFx(dt){
   for(const r of ripples){r.r+=r.g*dt;r.a-=dt*0.5}ripples=ripples.filter(r=>r.a>0);if(ripples.length>80)ripples.splice(0,ripples.length-80);
-  for(const p of pops){p.t-=dt;p.y-=U*0.08*dt}pops=pops.filter(p=>p.t>0);
+  for(const p of pops){p.t-=dt;if(!p.stay)p.y-=U*0.08*dt}pops=pops.filter(p=>p.t>0);
   flash=Math.max(0,flash-dt*2.5);shake=Math.max(0,shake-dt);superFx=Math.max(0,superFx-dt);
 }
 const playerR=()=>clamp(U*0.035,12,24);
@@ -613,7 +613,7 @@ function drawWarns(){
 function drawPops(){
   ctx.save();ctx.textAlign='center';ctx.font=`${Math.round(clamp(U*0.045,16,24))}px DotGothic16, monospace`;
   const base=Math.round(clamp(U*0.045,16,24));
-  for(const p of pops){ctx.globalAlpha=Math.min(1,p.t*2);ctx.font=`${Math.round(base*(p.big||1))}px DotGothic16, monospace`;const o=p.big?4:2;ctx.fillStyle='#04201f';ctx.fillText(p.txt,p.x+o,p.y+o);ctx.fillStyle=p.c;ctx.fillText(p.txt,p.x,p.y)}
+  for(const p of pops){ctx.globalAlpha=Math.min(1,p.t*2)*(p.a||1);ctx.font=`${Math.round(base*(p.big||1))}px DotGothic16, monospace`;const o=p.big?4:2;ctx.fillStyle='#04201f';ctx.fillText(p.txt,p.x+o,p.y+o);ctx.fillStyle=p.c;ctx.fillText(p.txt,p.x,p.y)}
   ctx.restore();
 }
 function draw(){
@@ -631,9 +631,9 @@ function draw(){
     const target=Math.max(H*1.05,W/faceAspect(caught.f)*0.95);
     drawFace(caught.f,{x:lerp(caught.x0,W/2,k),y:lerp(caught.y0,H*0.42,k),h:lerp(caught.h0,target,k)});
   }
-  if(superFx>0){const k=Math.min(1,superFx),hue=(performance.now()*0.4)%360,lw=U*0.035;
+  if(superFx>0){const k=Math.min(1,superFx),hue=(performance.now()*0.4)%360,lw=U*0.022;
     ctx.save();ctx.globalAlpha=k;ctx.lineWidth=lw;ctx.strokeStyle=`hsl(${hue},100%,60%)`;ctx.strokeRect(lw/2,lw/2,W-lw,H-lw);
-    ctx.globalAlpha=k*0.12;ctx.fillStyle=`hsl(${(hue+180)%360},100%,60%)`;ctx.fillRect(0,0,W,H);ctx.restore()}
+    ctx.globalAlpha=k*0.05;ctx.fillStyle=`hsl(${(hue+180)%360},100%,60%)`;ctx.fillRect(0,0,W,H);ctx.restore()}
   if(flash>0){ctx.fillStyle=`rgba(255,255,255,${flash*0.7})`;ctx.fillRect(0,0,W,H)}
   ctx.restore();
 }
