@@ -173,7 +173,7 @@ body{background:#03191b;touch-action:none;color:var(--paper);font-family:var(--b
 
 <script>
 (function(){
-const FACE_SRC="/face.webp", RARE_SRC="/face-rare.webp", RARE_RATE=1/20;
+const FACE_SRC="/face.webp", RARE_SRC="/face-rare.webp", RARE_RATE=1/20, SUPER_SRC="/face-super.webp", SUPER_RATE=1/100;
 const SITE_URL="https://kao-nigero.ftjvcd99yy.workers.dev/";
 const $=id=>document.getElementById(id);
 const cv=$('cv'),ctx=cv.getContext('2d');
@@ -183,18 +183,29 @@ const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
 let W=0,H=0,U=0,DPR=1;
 let pads=[],padW=0,padH=0;
 const img=new Image(); let ASPECT=0.8;
-const imgRare=new Image(); let aspectRare=0.8, rareReady=false;
+const imgRare=new Image(), imgSuper=new Image(); let aspectRare=0.8, aspectSuper=0.72, rareReady=false, superReady=false;
 imgRare.onload=()=>{aspectRare=imgRare.naturalWidth/imgRare.naturalHeight;rareReady=true};
-// 〇〇が1体出るたびに 1/20 でレア顔
+imgSuper.onload=()=>{aspectSuper=imgSuper.naturalWidth/imgSuper.naturalHeight;superReady=true};
+let superFx=0;
+// 〇〇が1体出るたびに抽選：1/100 で激レア、1/20 でレア
 function rollFace(f){
-  if(state==='play'&&rareReady&&Math.random()<RARE_RATE){
-    f.rare=true;
-    pops.push({x:clamp(f.x,W*0.25,W*0.75),y:clamp(f.y,H*0.18,H*0.8),txt:'レア〇〇 出現！',t:2.2,c:'#ffd35a'});
+  if(state!=='play')return f;
+  const r=Math.random(),px=clamp(f.x,W*0.25,W*0.75),py=clamp(f.y,H*0.2,H*0.8);
+  if(superReady&&r<SUPER_RATE){
+    f.rare='super';superFx=2.6;flash=Math.max(flash,0.9);shake=Math.max(shake,0.6);
+    pops.push({x:W/2,y:H*0.36,txt:'激レア〇〇',t:2.8,c:'#ff6a45',big:2.2});
+    pops.push({x:W/2,y:H*0.36+U*0.11,txt:'降臨！！',t:2.8,c:'#ffd35a',big:1.6});
+    [784,988,1175,1568].forEach((hz,i)=>setTimeout(()=>beep(hz,i===3?.35:.12,'square',.07),i*120));
+    try{navigator.vibrate&&navigator.vibrate([40,30,40,30,120])}catch(e){}
+  }else if(rareReady&&r<SUPER_RATE+RARE_RATE){
+    f.rare='rare';
+    pops.push({x:px,y:py,txt:'レア〇〇 出現！',t:2.2,c:'#ffd35a'});
     beep(988,.1,'square',.06);setTimeout(()=>beep(1319,.18,'square',.06),110);
   }
   return f;
 }
-const faceImg=f=>f&&f.rare?imgRare:img, faceAspect=f=>f&&f.rare?aspectRare:ASPECT;
+const faceImg=f=>f&&f.rare==='super'?imgSuper:f&&f.rare?imgRare:img;
+const faceAspect=f=>f&&f.rare==='super'?aspectSuper:f&&f.rare?aspectRare:ASPECT;
 
 let state='loading', t=0, score=0, flies=0, best=0;
 let P={x:0,y:0,vx:0,vy:0,ang:-Math.PI/2,stride:0,speed:0};
@@ -256,7 +267,7 @@ function spawnWarn(){
 
 /* ---------- game flow ---------- */
 function reset(){
-  t=0;score=0;flies=0;spawnIdx=0;faces=[];warns=[];ripples=[];pops=[];caught=null;flash=0;shake=0;
+  t=0;score=0;flies=0;spawnIdx=0;faces=[];warns=[];ripples=[];pops=[];caught=null;flash=0;shake=0;superFx=0;
   P.x=W/2;P.y=H*0.72;P.vx=P.vy=0;
   faces.push(rollFace(newFace(W/2,-U*0.2,0.30,1,1.6)));
   fly=null;flyCD=1.5;
@@ -512,7 +523,7 @@ function updateMenu(dt){
 function updateFx(dt){
   for(const r of ripples){r.r+=r.g*dt;r.a-=dt*0.5}ripples=ripples.filter(r=>r.a>0);if(ripples.length>80)ripples.splice(0,ripples.length-80);
   for(const p of pops){p.t-=dt;p.y-=U*0.08*dt}pops=pops.filter(p=>p.t>0);
-  flash=Math.max(0,flash-dt*2.5);shake=Math.max(0,shake-dt);
+  flash=Math.max(0,flash-dt*2.5);shake=Math.max(0,shake-dt);superFx=Math.max(0,superFx-dt);
 }
 const playerR=()=>clamp(U*0.035,12,24);
 
@@ -550,6 +561,8 @@ function drawFace(f,override){
   if(f.state==='dash'&&!override){rot=Math.atan2(f.dy,f.dx)*0.12;sx=1.08;sy=0.94}
   if(!reduceMotion&&!override){sy*=1+Math.sin(f.wob*5)*0.025}
   ctx.rotate(rot);ctx.scale(sx,sy);
+  if(f.rare==='super'&&!override){ctx.shadowColor=`hsl(${(f.wob*240)%360},100%,60%)`;ctx.shadowBlur=U*0.06}
+  else if(f.rare==='rare'&&!override){ctx.shadowColor='rgba(255,211,90,.8)';ctx.shadowBlur=U*0.03}
   ctx.drawImage(faceImg(f),-w/2,-h/2,w,h);
   ctx.restore();
 }
@@ -599,7 +612,8 @@ function drawWarns(){
 }
 function drawPops(){
   ctx.save();ctx.textAlign='center';ctx.font=`${Math.round(clamp(U*0.045,16,24))}px DotGothic16, monospace`;
-  for(const p of pops){ctx.globalAlpha=Math.min(1,p.t*2);ctx.fillStyle='#04201f';ctx.fillText(p.txt,p.x+2,p.y+2);ctx.fillStyle=p.c;ctx.fillText(p.txt,p.x,p.y)}
+  const base=Math.round(clamp(U*0.045,16,24));
+  for(const p of pops){ctx.globalAlpha=Math.min(1,p.t*2);ctx.font=`${Math.round(base*(p.big||1))}px DotGothic16, monospace`;const o=p.big?4:2;ctx.fillStyle='#04201f';ctx.fillText(p.txt,p.x+o,p.y+o);ctx.fillStyle=p.c;ctx.fillText(p.txt,p.x,p.y)}
   ctx.restore();
 }
 function draw(){
@@ -617,6 +631,9 @@ function draw(){
     const target=Math.max(H*1.05,W/faceAspect(caught.f)*0.95);
     drawFace(caught.f,{x:lerp(caught.x0,W/2,k),y:lerp(caught.y0,H*0.42,k),h:lerp(caught.h0,target,k)});
   }
+  if(superFx>0){const k=Math.min(1,superFx),hue=(performance.now()*0.4)%360,lw=U*0.035;
+    ctx.save();ctx.globalAlpha=k;ctx.lineWidth=lw;ctx.strokeStyle=`hsl(${hue},100%,60%)`;ctx.strokeRect(lw/2,lw/2,W-lw,H-lw);
+    ctx.globalAlpha=k*0.12;ctx.fillStyle=`hsl(${(hue+180)%360},100%,60%)`;ctx.fillRect(0,0,W,H);ctx.restore()}
   if(flash>0){ctx.fillStyle=`rgba(255,255,255,${flash*0.7})`;ctx.fillRect(0,0,W,H)}
   ctx.restore();
 }
@@ -640,6 +657,7 @@ function start(){
   img.onload=()=>{aspectMain=ASPECT=img.naturalWidth/img.naturalHeight;$('loading').hidden=true;toMenu()};
   img.src=FACE_SRC;
   imgRare.src=RARE_SRC;
+  imgSuper.src=SUPER_SRC;
   loadRank();
   requestAnimationFrame(loop);
 }
